@@ -3,7 +3,7 @@ use std::io;
 use actix_web::{App, HttpResponse, HttpServer, Responder, get, web};
 
 #[get("/health_check")]
-async fn health_check() -> impl Responder {
+pub async fn health_check() -> impl Responder {
     println!("Hello there");
     HttpResponse::Ok().body("OK")
 }
