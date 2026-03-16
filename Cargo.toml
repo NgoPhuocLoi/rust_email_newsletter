@@ -2,6 +2,14 @@
 name = "rust_email_newsletter"
 version = "0.1.0"
 edition = "2024"
+authors = ["Loi Ngo <ngophuocloi2511@gmail.com>"]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "rust_email_newsletter"
 
 [dependencies]
 actix-web = "4"

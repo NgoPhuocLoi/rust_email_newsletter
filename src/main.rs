@@ -1,24 +1,6 @@
-use std::io;
-
-use actix_web::{App, HttpResponse, HttpServer, Responder, get, web};
-
-#[get("/health_check")]
-async fn health_check() -> impl Responder {
-    HttpResponse::Ok().body("Good")
-}
-
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey there!")
-}
+use rust_email_newsletter::run;
 
 #[actix_web::main]
-async fn main() -> io::Result<()> {
-    HttpServer::new(|| {
-        App::new()
-            .service(health_check)
-            .route("/hello", web::get().to(manual_hello))
-    })
-    .bind("localhost:8080")?
-    .run()
-    .await
+async fn main() -> std::io::Result<()> {
+    run().await
 }
