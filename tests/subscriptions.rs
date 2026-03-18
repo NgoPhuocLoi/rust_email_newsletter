@@ -1,6 +1,5 @@
 use actix_web::{App, http::header::ContentType, test};
-use rust_email_newsletter::subscribe;
-
+use rust_email_newsletter::routes::subscribe;
 
 #[actix_web::test]
 async fn subscribe_return_200_for_a_valid_form_data() {
