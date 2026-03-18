@@ -1,6 +1,18 @@
 use std::io;
 
-use actix_web::{App, HttpResponse, HttpServer, Responder, get, web};
+use actix_web::{App, HttpResponse, HttpServer, Responder, get, post, web::{self, Form}};
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize)]
+pub struct OkResponse {
+    message: String
+}
+
+#[derive(Deserialize)]
+pub struct SubscriptionFormData {
+    username: String,
+    email: String
+}
 
 #[get("/health_check")]
 pub async fn health_check() -> impl Responder {
@@ -8,17 +20,20 @@ pub async fn health_check() -> impl Responder {
     HttpResponse::Ok().body("OK")
 }
 
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey there!")
+#[post("subscriptions")]
+pub async fn subscribe(form: Form<SubscriptionFormData>) -> impl Responder {
+    HttpResponse::Ok().json( OkResponse {
+        message: format!("username: {}, email: {}", form.username, form.email)
+    })
 }
 
 pub async fn run() -> io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .service(health_check)
-            .route("/hello", web::get().to(manual_hello))
+            .service(subscribe)
     })
-    .bind("localhost:8080")?
+    .bind("localhost:9090")?
     .run()
     .await
 }
