@@ -1,0 +1,7 @@
+server_port: 9090
+db:
+  host: "ep-spring-union-a1tty9q6-pooler.ap-southeast-1.aws.neon.tech"
+  port: 5432
+  username: "neondb_owner"
+  password: "npg_HJrukOZQ7lf9"
+  db_name: "newsletter"
