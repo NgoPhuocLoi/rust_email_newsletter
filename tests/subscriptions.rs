@@ -1,11 +1,15 @@
-use actix_web::{App, http::header::ContentType, test};
+use actix_web::{App, http::header::ContentType, test, web};
 use rust_email_newsletter::{configuration::get_configuration, routes::subscribe};
-use sqlx::{Connection, PgConnection};
+use sqlx::{Connection, PgConnection, PgPool};
 
 #[actix_web::test]
 async fn subscribe_return_200_for_a_valid_form_data() {
-    let app = test::init_service(App::new().service(subscribe)).await;
     let configuration = get_configuration().expect("Fail to load configuration");
+    let pool = PgPool::connect(&configuration.db.connection_string())
+        .await
+        .expect("Fail to connect to DB");
+    let app =
+        test::init_service(App::new().service(subscribe).app_data(web::Data::new(pool))).await;
 
     let req = test::TestRequest::post()
         .uri("/subscriptions")
