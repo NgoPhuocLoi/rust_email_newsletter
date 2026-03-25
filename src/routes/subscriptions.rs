@@ -14,12 +14,20 @@ pub struct SubscriptionFormData {
 
 #[post("subscriptions")]
 pub async fn subscribe(form: Form<SubscriptionFormData>, pool: web::Data<PgPool>) -> HttpResponse {
-    sqlx::query("INSERT INTO subscription (email, username, subscribed_at) VALUES ($1, $2, $3)")
-        .bind(&form.email)
-        .bind(&form.username)
-        .bind(Utc::now())
-        .execute(pool.get_ref())
-        .await
-        .expect("Failed to execute query");
-    HttpResponse::Ok().body("OK")
+    let saved_result = sqlx::query(
+        "INSERT INTO subscription (email, username, subscribed_at) VALUES ($1, $2, $3)",
+    )
+    .bind(&form.email)
+    .bind(&form.username)
+    .bind(Utc::now())
+    .execute(pool.get_ref())
+    .await;
+
+    match saved_result {
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(e) => {
+            println!("Failed to create subscription: {}", e);
+            HttpResponse::InternalServerError().body("failed")
+        }
+    }
 }
