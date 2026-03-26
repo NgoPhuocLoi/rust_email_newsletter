@@ -4,7 +4,7 @@ use crate::{
     configuration::get_configuration,
     routes::{health_api, subscribe},
 };
-use actix_web::{App, HttpServer, web};
+use actix_web::{App, HttpServer, middleware::Logger, web};
 use sqlx::PgPool;
 
 pub async fn run(db_connection: PgPool) -> io::Result<()> {
@@ -12,6 +12,7 @@ pub async fn run(db_connection: PgPool) -> io::Result<()> {
     let setting = get_configuration().expect("Failed to red the configuration file");
     HttpServer::new(move || {
         App::new()
+            .wrap(Logger::default())
             .service(health_api)
             .service(subscribe)
             .app_data(connection.clone())
