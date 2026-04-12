@@ -5,7 +5,6 @@ use actix_web::{
 use chrono::Utc;
 use serde::Deserialize;
 use sqlx::{PgPool, postgres::PgQueryResult};
-use uuid::Uuid;
 
 #[derive(Deserialize)]
 pub struct SubscriptionFormData {
@@ -17,7 +16,6 @@ pub struct SubscriptionFormData {
     name = "Adding subscription",
     skip(form, pool),
     fields(
-        request_id = %Uuid::new_v4(),
         email = %form.email,
         username = %form.username
     )
