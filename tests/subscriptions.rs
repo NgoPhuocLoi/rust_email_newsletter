@@ -1,11 +1,12 @@
 use actix_web::{App, http::header::ContentType, test, web};
 use rust_email_newsletter::{configuration::get_configuration, routes::subscribe};
+use secrecy::ExposeSecret;
 use sqlx::{Connection, PgConnection, PgPool};
 
 #[actix_web::test]
 async fn subscribe_return_200_for_a_valid_form_data() {
     let configuration = get_configuration().expect("Fail to load configuration");
-    let pool = PgPool::connect(&configuration.db.connection_string())
+    let pool = PgPool::connect(&configuration.db.connection_string().expose_secret())
         .await
         .expect("Fail to connect to DB");
     let app =
@@ -19,9 +20,10 @@ async fn subscribe_return_200_for_a_valid_form_data() {
 
     let resp = test::call_service(&app, req).await;
 
-    let mut connection = PgConnection::connect(&configuration.db.connection_string())
-        .await
-        .expect("Fail to connect to DB");
+    let mut connection =
+        PgConnection::connect(&configuration.db.connection_string().expose_secret())
+            .await
+            .expect("Fail to connect to DB");
     let saved = sqlx::query_as::<_, (String, String)>("SELECT email, username FROM subscription")
         .fetch_one(&mut connection)
         .await
