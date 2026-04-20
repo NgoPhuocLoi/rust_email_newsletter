@@ -1797,6 +1797,7 @@ dependencies = [
  "tracing-actix-web",
  "tracing-bunyan-formatter",
  "tracing-subscriber",
+ "unicode-segmentation",
  "uuid",
 ]
 
