@@ -18,7 +18,10 @@ pub async fn run(db_connection: PgPool) -> io::Result<()> {
             .service(subscribe)
             .app_data(connection.clone())
     })
-    .bind(format!("localhost:{}", setting.server_port))?
+    .bind(format!(
+        "{}:{}",
+        setting.application.server_host, setting.application.server_port
+    ))?
     .run()
     .await
 }
