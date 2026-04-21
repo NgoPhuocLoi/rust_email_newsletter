@@ -5,7 +5,8 @@ use actix_web::{
 use chrono::Utc;
 use serde::Deserialize;
 use sqlx::{PgPool, postgres::PgQueryResult};
-use unicode_segmentation::UnicodeSegmentation;
+
+use crate::domain::{NewSubscriber, SubscriberName};
 
 #[derive(Deserialize)]
 pub struct SubscriptionFormData {
@@ -23,27 +24,27 @@ pub struct SubscriptionFormData {
 )]
 #[post("subscriptions")]
 pub async fn subscribe(form: Form<SubscriptionFormData>, pool: web::Data<PgPool>) -> HttpResponse {
-    if !is_valid_name(&form.username) {
-        tracing::info!("Invlaid username: {}", &form.username);
-        return HttpResponse::BadRequest().finish();
-    }
+    let subscriber = NewSubscriber {
+        email: form.email.clone(),
+        name: SubscriberName::parse(form.username.clone()),
+    };
 
-    match insert_subscription(&form, &pool).await {
+    match insert_subscription(&subscriber, &pool).await {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().body("failed"),
     }
 }
 
-#[tracing::instrument(name = "Inserting subscription", skip(form, pool))]
+#[tracing::instrument(name = "Inserting subscription", skip(new_subscriber, pool))]
 async fn insert_subscription(
-    form: &Form<SubscriptionFormData>,
+    new_subscriber: &NewSubscriber,
     pool: &PgPool,
 ) -> Result<PgQueryResult, sqlx::Error> {
     let result = sqlx::query(
         "INSERT INTO subscription (email, username, subscribed_at) VALUES ($1, $2, $3)",
     )
-    .bind(&form.email)
-    .bind(&form.username)
+    .bind(&new_subscriber.email)
+    .bind(&new_subscriber.name.inner_ref())
     .bind(Utc::now())
     .execute(pool)
     .await
@@ -53,26 +54,4 @@ async fn insert_subscription(
     })?;
 
     Ok(result)
-}
-
-pub fn is_valid_name(name: &str) -> bool {
-    const MAXIMUM_NAME_LENGTH: usize = 256;
-    const FORBBIDEN_CHARS: [char; 9] = ['/', '(', ')', '"', '<', '>', '\\', '{', '}'];
-
-    // Should not be empty
-    if name.trim().is_empty() {
-        return false;
-    }
-
-    // Should be shorter than MAXIMUM_NAME_LENGTH
-    if name.graphemes(true).count() > MAXIMUM_NAME_LENGTH {
-        return false;
-    }
-
-    // Should not contain any forbbiden characters
-    if name.chars().any(|c| FORBBIDEN_CHARS.contains(&c)) {
-        return false;
-    }
-
-    true
 }
