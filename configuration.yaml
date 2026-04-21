@@ -1,4 +1,6 @@
-server_port: 9090
+application:
+  server_port: 9090
+  server_host: 127.0.0.1
 db:
   host: "ep-spring-union-a1tty9q6-pooler.ap-southeast-1.aws.neon.tech"
   port: 5432
