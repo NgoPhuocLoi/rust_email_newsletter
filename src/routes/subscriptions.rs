@@ -44,7 +44,7 @@ async fn insert_subscription(
         "INSERT INTO subscription (email, username, subscribed_at) VALUES ($1, $2, $3)",
     )
     .bind(&new_subscriber.email)
-    .bind(&new_subscriber.name.inner_ref())
+    .bind(&new_subscriber.name.as_ref())
     .bind(Utc::now())
     .execute(pool)
     .await
