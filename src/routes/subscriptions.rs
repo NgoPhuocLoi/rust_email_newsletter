@@ -26,7 +26,8 @@ pub struct SubscriptionFormData {
 pub async fn subscribe(form: Form<SubscriptionFormData>, pool: web::Data<PgPool>) -> HttpResponse {
     let subscriber = NewSubscriber {
         email: form.email.clone(),
-        name: SubscriberName::parse(form.username.clone()),
+        name: SubscriberName::parse(form.username.clone())
+            .expect("failed to parse subscriber name"),
     };
 
     match insert_subscription(&subscriber, &pool).await {

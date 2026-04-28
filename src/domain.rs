@@ -8,7 +8,7 @@ pub struct NewSubscriber {
 pub struct SubscriberName(String);
 
 impl SubscriberName {
-    pub fn parse(name: String) -> Self {
+    pub fn parse(name: String) -> Result<Self, String> {
         const MAXIMUM_NAME_LENGTH: usize = 256;
         const FORBBIDEN_CHARS: [char; 9] = ['/', '(', ')', '"', '<', '>', '\\', '{', '}'];
 
@@ -25,7 +25,7 @@ impl SubscriberName {
             panic!("Invalid name, can not parse to SubscriberName");
         }
 
-        Self(name)
+        Ok(Self(name))
     }
 }
 
