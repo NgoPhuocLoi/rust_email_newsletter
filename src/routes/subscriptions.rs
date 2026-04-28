@@ -6,7 +6,7 @@ use chrono::Utc;
 use serde::Deserialize;
 use sqlx::{PgPool, postgres::PgQueryResult};
 
-use crate::domain::{NewSubscriber, SubscriberName};
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 
 #[derive(Deserialize)]
 pub struct SubscriptionFormData {
@@ -28,10 +28,13 @@ pub async fn subscribe(form: Form<SubscriptionFormData>, pool: web::Data<PgPool>
         Ok(value) => value,
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
-    let subscriber = NewSubscriber {
-        email: form.email.clone(),
-        name,
+
+    let email = match SubscriberEmail::parse(form.email.clone()) {
+        Ok(value) => value,
+        Err(_) => return HttpResponse::BadRequest().finish(),
     };
+
+    let subscriber = NewSubscriber { email, name };
 
     match insert_subscription(&subscriber, &pool).await {
         Ok(_) => HttpResponse::Ok().finish(),
@@ -47,7 +50,7 @@ async fn insert_subscription(
     let result = sqlx::query(
         "INSERT INTO subscription (email, username, subscribed_at) VALUES ($1, $2, $3)",
     )
-    .bind(&new_subscriber.email)
+    .bind(new_subscriber.email.as_ref())
     .bind(&new_subscriber.name.as_ref())
     .bind(Utc::now())
     .execute(pool)
