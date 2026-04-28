@@ -70,4 +70,46 @@ mod tests {
         let email: String = SafeEmail().fake();
         assert_ok!(SubscriberEmail::parse(email));
     }
+
+    #[test]
+    fn missing_domain_is_rejected() {
+        let email = "user@".to_string();
+        assert_err!(SubscriberEmail::parse(email));
+    }
+
+    #[test]
+    fn whitespace_only_email_is_rejected() {
+        let email = "   ".to_string();
+        assert_err!(SubscriberEmail::parse(email));
+    }
+
+    #[test]
+    fn multiple_at_signs_are_rejected() {
+        let email = "user@@domain.com".to_string();
+        assert_err!(SubscriberEmail::parse(email));
+    }
+
+    #[test]
+    fn email_with_spaces_is_rejected() {
+        let email = "user name@domain.com".to_string();
+        assert_err!(SubscriberEmail::parse(email));
+    }
+
+    #[test]
+    fn email_with_valid_subdomain_is_accepted() {
+        let email = "user@mail.example.com".to_string();
+        assert_ok!(SubscriberEmail::parse(email));
+    }
+
+    #[test]
+    fn email_with_plus_sign_is_accepted() {
+        let email = "user+tag@example.com".to_string();
+        assert_ok!(SubscriberEmail::parse(email));
+    }
+
+    #[test]
+    fn email_with_dots_in_local_part_is_accepted() {
+        let email = "first.last@example.com".to_string();
+        assert_ok!(SubscriberEmail::parse(email));
+    }
 }
