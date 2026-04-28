@@ -26,6 +26,10 @@ tracing-actix-web = "0.7"
 unicode-segmentation = "1.9.0"
 claim = "0.5.0"
 validator = "0.20.0"
+fake = "5.1.0"
+quickcheck = "1.1.0"
+quickcheck_macros = "1.2.0"
+rand = "0.10.1"
 
 # Using table-like toml syntax to avoid a super-long line!
 [dependencies.sqlx]
