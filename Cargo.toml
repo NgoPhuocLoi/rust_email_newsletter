@@ -24,6 +24,7 @@ tracing-bunyan-formatter = "0.3"
 secrecy = { version = "0.10.3", features = ["serde"] }
 tracing-actix-web = "0.7"
 unicode-segmentation = "1.9.0"
+claim = "0.5.0"
 
 # Using table-like toml syntax to avoid a super-long line!
 [dependencies.sqlx]
