@@ -21,7 +21,9 @@ impl AsRef<str> for SubscriberEmail {
 
 #[cfg(test)]
 mod tests {
-    use claim::assert_err;
+    use claim::{assert_err, assert_ok};
+    use fake::Fake;
+    use fake::faker::internet::en::SafeEmail;
 
     use crate::domain::SubscriberEmail;
 
@@ -41,5 +43,11 @@ mod tests {
     fn missing_at_char_email_is_rejected() {
         let email = "addgmail.com".to_string();
         assert_err!(SubscriberEmail::parse(email));
+    }
+
+    #[test]
+    fn valid_emails_are_accepted() {
+        let email: String = SafeEmail().fake();
+        assert_ok!(SubscriberEmail::parse(email));
     }
 }
