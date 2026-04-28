@@ -5,6 +5,7 @@ pub struct NewSubscriber {
     pub name: SubscriberName,
 }
 
+#[derive(Debug)]
 pub struct SubscriberName(String);
 
 impl SubscriberName {
@@ -22,7 +23,7 @@ impl SubscriberName {
         let has_invalid_chars = name.chars().any(|c| FORBBIDEN_CHARS.contains(&c));
 
         if is_empty || has_invalid_chars || has_invalid_length {
-            panic!("Invalid name, can not parse to SubscriberName");
+            return Err(format!("{} is not a valid subscriber name.", name));
         }
 
         Ok(Self(name))
@@ -32,5 +33,63 @@ impl SubscriberName {
 impl AsRef<str> for SubscriberName {
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use claim::{assert_err, assert_ok};
+
+    use crate::domain::SubscriberName;
+
+    #[test]
+    fn a_256_grapheme_long_name_is_valid() {
+        let name = "a".repeat(256);
+        assert_ok!(SubscriberName::parse(name));
+    }
+
+    #[test]
+    fn a_257_grapheme_long_name_is_rejected() {
+        let name = "a".repeat(257);
+        assert_err!(SubscriberName::parse(name));
+    }
+
+    #[test]
+    fn a_single_character_name_is_valid() {
+        assert_ok!(SubscriberName::parse("A".to_string()));
+    }
+
+    #[test]
+    fn a_normal_name_is_valid() {
+        assert_ok!(SubscriberName::parse("John Doe".to_string()));
+    }
+
+    #[test]
+    fn a_unicode_name_is_valid() {
+        // Each emoji counts as one grapheme
+        let name = "é à ü ñ".to_string();
+        assert_ok!(SubscriberName::parse(name));
+    }
+
+    #[test]
+    fn an_empty_name_is_rejected() {
+        assert_err!(SubscriberName::parse("".to_string()));
+    }
+
+    #[test]
+    fn a_whitespace_only_name_is_rejected() {
+        assert_err!(SubscriberName::parse("   ".to_string()));
+    }
+
+    #[test]
+    fn names_containing_forbidden_characters_are_rejected() {
+        const FORBIDDEN_CHARS: [char; 9] = ['/', '(', ')', '"', '<', '>', '\\', '{', '}'];
+        for &ch in &FORBIDDEN_CHARS {
+            let name = format!("Valid{ch}Name");
+            assert_err!(
+                SubscriberName::parse(name),
+                "Expected Err for forbidden char: {ch}"
+            );
+        }
     }
 }
