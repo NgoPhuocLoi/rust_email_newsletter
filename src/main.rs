@@ -1,5 +1,7 @@
 use rust_email_newsletter::{
     configuration::get_configuration,
+    domain::SubscriberEmail,
+    email_client::EmailClient,
     startup::run,
     telemetry::{get_subscriber, init_subscriber},
 };
@@ -14,5 +16,11 @@ async fn main() -> std::io::Result<()> {
     let pool = PgPool::connect(&config.db.connection_string().expose_secret())
         .await
         .expect("Fail to connect to DB");
-    run(pool).await
+
+    let sender_email = SubscriberEmail::parse(config.email_client.sender_email)
+        .expect("Invalid sender email in configuration");
+
+    let email_client = EmailClient::new(config.email_client.base_url, sender_email);
+
+    run(pool, email_client).await
 }

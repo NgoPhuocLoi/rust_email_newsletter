@@ -30,6 +30,7 @@ fake = "5.1.0"
 quickcheck = "1.1.0"
 quickcheck_macros = "1.2.0"
 rand = "0.10.1"
+reqwest = { version = "0.13", features = ["json"] }
 
 # Using table-like toml syntax to avoid a super-long line!
 [dependencies.sqlx]

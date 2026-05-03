@@ -7,3 +7,6 @@ db:
   username: "neondb_owner"
   password: "npg_TNI8o6qPavKC"
   db_name: "newsletter_rust"
+email_client:
+  sender_email: nploi@axongroupio.ch
+  base_url: abcd

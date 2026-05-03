@@ -2,16 +2,31 @@ use config::{Config, ConfigError, File};
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 
+use crate::domain::SubscriberEmail;
+
 #[derive(Deserialize)]
 pub struct Settings {
     pub db: DatabaseSettings,
     pub application: ApplicationSettings,
+    pub email_client: EmailClientSettings,
 }
 
 #[derive(Deserialize)]
 pub struct ApplicationSettings {
     pub server_port: u16,
     pub server_host: String,
+}
+
+#[derive(Deserialize)]
+pub struct EmailClientSettings {
+    pub sender_email: String,
+    pub base_url: String,
+}
+
+impl EmailClientSettings {
+    pub fn sender(&self) -> Result<SubscriberEmail, String> {
+        SubscriberEmail::parse(self.sender_email.clone())
+    }
 }
 
 #[derive(Deserialize)]
