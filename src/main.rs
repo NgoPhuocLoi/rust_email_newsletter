@@ -17,10 +17,15 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Fail to connect to DB");
 
+    let email_client_timeout = config.email_client.timeout();
     let sender_email = SubscriberEmail::parse(config.email_client.sender_email)
         .expect("Invalid sender email in configuration");
 
-    let email_client = EmailClient::new(config.email_client.base_url, sender_email);
+    let email_client = EmailClient::new(
+        config.email_client.base_url,
+        sender_email,
+        email_client_timeout,
+    );
 
     run(pool, email_client).await
 }

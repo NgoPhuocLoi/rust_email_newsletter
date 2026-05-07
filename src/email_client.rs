@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use reqwest::Client;
 use serde::Serialize;
 
@@ -10,9 +12,12 @@ pub struct EmailClient {
 }
 
 impl EmailClient {
-    pub fn new(base_url: String, sender_email: SubscriberEmail) -> Self {
+    pub fn new(base_url: String, sender_email: SubscriberEmail, timeout: Duration) -> Self {
         Self {
-            http_client: Client::new(),
+            http_client: Client::builder()
+                .timeout(timeout)
+                .build()
+                .expect("Failed to create new EmailClient"),
             base_url,
             sender_email,
         }
@@ -58,6 +63,7 @@ struct SendEmailRequest<'a> {
 
 #[cfg(test)]
 mod tests {
+
     use std::time::Duration;
 
     use claim::{assert_err, assert_ok};
@@ -106,7 +112,7 @@ mod tests {
     }
     /// Get a test instance of `EmailClient`.
     fn email_client(base_url: String) -> EmailClient {
-        EmailClient::new(base_url, email())
+        EmailClient::new(base_url, email(), Duration::from_millis(200))
     }
 
     #[tokio::test]
@@ -155,6 +161,24 @@ mod tests {
 
         Mock::given(any())
             .respond_with(ResponseTemplate::new(500))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let outcome = email_client
+            .send_email(email(), &subject(), &content(), &content())
+            .await;
+
+        assert_err!(outcome);
+    }
+
+    #[tokio::test]
+    async fn send_email_timeout_if_server_takes_too_long() {
+        let mock_server = MockServer::start().await;
+        let email_client = email_client(mock_server.uri());
+
+        Mock::given(any())
+            .respond_with(ResponseTemplate::new(200).set_delay(Duration::from_millis(300)))
             .expect(1)
             .mount(&mock_server)
             .await;
