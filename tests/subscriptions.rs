@@ -3,14 +3,19 @@ use rust_email_newsletter::{configuration::get_configuration, routes::subscribe}
 use secrecy::ExposeSecret;
 use sqlx::{Connection, PgConnection, PgPool};
 
+use crate::helpers::get_postgres_pool_and_connection;
+
+mod helpers;
+
 #[actix_web::test]
 async fn subscribe_return_200_for_a_valid_form_data() {
-    let configuration = get_configuration().expect("Fail to load configuration");
-    let pool = PgPool::connect(&configuration.db.connection_string().expose_secret())
-        .await
-        .expect("Fail to connect to DB");
-    let app =
-        test::init_service(App::new().service(subscribe).app_data(web::Data::new(pool))).await;
+    let (postgres_pool, mut connection) = helpers::get_postgres_pool_and_connection().await;
+    let app = test::init_service(
+        App::new()
+            .service(subscribe)
+            .app_data(web::Data::new(postgres_pool)),
+    )
+    .await;
 
     let req = test::TestRequest::post()
         .uri("/subscriptions")
@@ -20,10 +25,6 @@ async fn subscribe_return_200_for_a_valid_form_data() {
 
     let resp = test::call_service(&app, req).await;
 
-    let mut connection =
-        PgConnection::connect(&configuration.db.connection_string().expose_secret())
-            .await
-            .expect("Fail to connect to DB");
     let saved = sqlx::query_as::<_, (String, String)>("SELECT email, username FROM subscription")
         .fetch_one(&mut connection)
         .await
@@ -59,10 +60,7 @@ async fn subscribe_return_400_when_email_is_invalid() {
         "",
     ];
 
-    let configuration = get_configuration().expect("Fail to load configuration");
-    let pool = PgPool::connect(&configuration.db.connection_string().expose_secret())
-        .await
-        .expect("Fail to connect to DB");
+    let (pool, _) = get_postgres_pool_and_connection().await;
     let app =
         test::init_service(App::new().service(subscribe).app_data(web::Data::new(pool))).await;
 
@@ -95,10 +93,7 @@ async fn subscribe_return_400_when_username_is_invalid() {
         "name\"with\"quotes",
     ];
 
-    let configuration = get_configuration().expect("Fail to load configuration");
-    let pool = PgPool::connect(&configuration.db.connection_string().expose_secret())
-        .await
-        .expect("Fail to connect to DB");
+    let (pool, _) = get_postgres_pool_and_connection().await;
     let app =
         test::init_service(App::new().service(subscribe).app_data(web::Data::new(pool))).await;
 
