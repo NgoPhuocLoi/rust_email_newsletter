@@ -67,7 +67,7 @@ async fn insert_subscription(
     pool: &PgPool,
 ) -> Result<PgQueryResult, sqlx::Error> {
     let result = sqlx::query(
-        "INSERT INTO subscription (email, username, subscribed_at, status) VALUES ($1, $2, $3, 'confirmed')",
+        "INSERT INTO subscription (email, username, subscribed_at, status) VALUES ($1, $2, $3, 'pending_confirmation')",
     )
     .bind(new_subscriber.email.as_ref())
     .bind(&new_subscriber.name.as_ref())

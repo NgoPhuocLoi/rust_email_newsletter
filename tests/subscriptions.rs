@@ -36,8 +36,8 @@ async fn subscribe_return_200_for_a_valid_form_data() {
 
     let resp = test::call_service(&app, req).await;
 
-    let saved = sqlx::query_as::<_, (String, String)>(
-        "SELECT email, username FROM subscription WHERE email = $1",
+    let saved = sqlx::query_as::<_, (String, String, String)>(
+        "SELECT email, username, status FROM subscription WHERE email = $1",
     )
     .bind(&subscriber_email)
     .fetch_one(&mut connection)
@@ -47,6 +47,7 @@ async fn subscribe_return_200_for_a_valid_form_data() {
     assert!(resp.status().is_success());
     assert_eq!(saved.0, subscriber_email);
     assert_eq!(saved.1, "LoiNgo");
+    assert_eq!(saved.2, "pending_confirmation")
 }
 
 #[actix_web::test]
