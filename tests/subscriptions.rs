@@ -1,7 +1,6 @@
 use actix_web::{App, http::header::ContentType, test, web};
-use rust_email_newsletter::{configuration::get_configuration, routes::subscribe};
-use secrecy::ExposeSecret;
-use sqlx::{Connection, PgConnection, PgPool};
+use rust_email_newsletter::routes::subscribe;
+use wiremock::{Mock, ResponseTemplate, matchers::any};
 
 use crate::helpers::get_postgres_pool_and_connection;
 
@@ -10,28 +9,43 @@ mod helpers;
 #[actix_web::test]
 async fn subscribe_return_200_for_a_valid_form_data() {
     let (postgres_pool, mut connection) = helpers::get_postgres_pool_and_connection().await;
+
+    let subscriber_email = helpers::get_random_email();
+
+    let (mock_server, email_client) = helpers::get_mock_email_server().await;
+
+    Mock::given(any())
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&mock_server)
+        .await;
+
     let app = test::init_service(
         App::new()
             .service(subscribe)
-            .app_data(web::Data::new(postgres_pool)),
+            .app_data(web::Data::new(postgres_pool))
+            .app_data(web::Data::new(email_client)),
     )
     .await;
 
     let req = test::TestRequest::post()
         .uri("/subscriptions")
         .insert_header(ContentType::form_url_encoded())
-        .set_payload("username=LoiNgo&email=nploi@axonactive.com")
+        .set_payload(format!("username=LoiNgo&email={}", &subscriber_email))
         .to_request();
 
     let resp = test::call_service(&app, req).await;
 
-    let saved = sqlx::query_as::<_, (String, String)>("SELECT email, username FROM subscription")
-        .fetch_one(&mut connection)
-        .await
-        .expect("Failed to check saved subscription");
+    let saved = sqlx::query_as::<_, (String, String)>(
+        "SELECT email, username FROM subscription WHERE email = $1",
+    )
+    .bind(&subscriber_email)
+    .fetch_one(&mut connection)
+    .await
+    .expect("Failed to check saved subscription");
 
     assert!(resp.status().is_success());
-    assert_eq!(saved.0, "nploi@axonactive.com");
+    assert_eq!(saved.0, subscriber_email);
     assert_eq!(saved.1, "LoiNgo");
 }
 
@@ -61,8 +75,14 @@ async fn subscribe_return_400_when_email_is_invalid() {
     ];
 
     let (pool, _) = get_postgres_pool_and_connection().await;
-    let app =
-        test::init_service(App::new().service(subscribe).app_data(web::Data::new(pool))).await;
+    let (_, email_client) = helpers::get_mock_email_server().await;
+    let app = test::init_service(
+        App::new()
+            .service(subscribe)
+            .app_data(web::Data::new(pool))
+            .app_data(web::Data::new(email_client)),
+    )
+    .await;
 
     for invalid_email in invalid_emails {
         let payload = format!("username=LoiNgo&email={invalid_email}");
@@ -94,8 +114,15 @@ async fn subscribe_return_400_when_username_is_invalid() {
     ];
 
     let (pool, _) = get_postgres_pool_and_connection().await;
-    let app =
-        test::init_service(App::new().service(subscribe).app_data(web::Data::new(pool))).await;
+
+    let (_, email_client) = helpers::get_mock_email_server().await;
+    let app = test::init_service(
+        App::new()
+            .service(subscribe)
+            .app_data(web::Data::new(pool))
+            .app_data(web::Data::new(email_client)),
+    )
+    .await;
 
     for invalid_name in invalid_names {
         let payload = format!("username={invalid_name}&email=valid@example.com");
