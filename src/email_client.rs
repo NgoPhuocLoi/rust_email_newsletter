@@ -142,7 +142,7 @@ mod tests {
 
         Mock::given(header_exists("api-key"))
             .and(header("Content-Type", "application/json"))
-            .and(path("/email"))
+            .and(path("/v3/smtp/email"))
             .and(method("POST"))
             // Use our custom matcher!
             .and(SendEmailBodyMatcher)
