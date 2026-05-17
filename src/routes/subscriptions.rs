@@ -6,7 +6,10 @@ use chrono::Utc;
 use serde::Deserialize;
 use sqlx::{PgPool, postgres::PgQueryResult};
 
-use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::{
+    domain::{NewSubscriber, SubscriberEmail, SubscriberName},
+    email_client::EmailClient,
+};
 
 #[derive(Deserialize)]
 pub struct SubscriptionFormData {
@@ -26,23 +29,37 @@ impl TryFrom<SubscriptionFormData> for NewSubscriber {
 
 #[tracing::instrument(
     name = "Adding subscription",
-    skip(form, pool),
+    skip(form, pool, email_client),
     fields(
         email = %form.email,
         username = %form.username
     )
 )]
 #[post("subscriptions")]
-pub async fn subscribe(form: Form<SubscriptionFormData>, pool: web::Data<PgPool>) -> HttpResponse {
+pub async fn subscribe(
+    form: Form<SubscriptionFormData>,
+    pool: web::Data<PgPool>,
+    email_client: web::Data<EmailClient>,
+) -> HttpResponse {
     let subscriber: NewSubscriber = match form.0.try_into() {
         Ok(value) => value,
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
 
-    match insert_subscription(&subscriber, &pool).await {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(_) => HttpResponse::InternalServerError().body("failed"),
+    if insert_subscription(&subscriber, &pool).await.is_err() {
+        return HttpResponse::InternalServerError().body("failed");
     }
+
+    if email_client
+        .send_email(subscriber.email, "Welcome", "<h1>Hello there</h1>")
+        .await
+        .is_err()
+    {
+        tracing::error!("Failed to send to confirmation email");
+        return HttpResponse::InternalServerError().body("failed");
+    }
+
+    HttpResponse::Ok().finish()
 }
 
 #[tracing::instrument(name = "Inserting subscription", skip(new_subscriber, pool))]

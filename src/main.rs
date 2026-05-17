@@ -25,6 +25,7 @@ async fn main() -> std::io::Result<()> {
         config.email_client.base_url,
         sender_email,
         email_client_timeout,
+        config.email_client.api_key,
     );
 
     run(pool, email_client).await

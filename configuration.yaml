@@ -8,6 +8,7 @@ db:
   password: "npg_TNI8o6qPavKC"
   db_name: "newsletter_rust"
 email_client:
-  sender_email: nploi@axongroupio.ch
-  base_url: abcd
+  sender_email: ngophuocloi2511@gmail.com
+  base_url: https://api.brevo.com
+  api_key: <api-key>
   timeout_miliseconds: 10000

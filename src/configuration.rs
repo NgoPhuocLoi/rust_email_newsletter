@@ -23,6 +23,7 @@ pub struct ApplicationSettings {
 pub struct EmailClientSettings {
     pub sender_email: String,
     pub base_url: String,
+    pub api_key: SecretString,
     pub timeout_miliseconds: u64,
 }
 

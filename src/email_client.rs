@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use reqwest::Client;
+use secrecy::{ExposeSecret, SecretString};
 use serde::Serialize;
 
 use crate::domain::SubscriberEmail;
@@ -9,10 +10,16 @@ pub struct EmailClient {
     http_client: Client,
     sender_email: SubscriberEmail,
     base_url: String,
+    api_key: SecretString,
 }
 
 impl EmailClient {
-    pub fn new(base_url: String, sender_email: SubscriberEmail, timeout: Duration) -> Self {
+    pub fn new(
+        base_url: String,
+        sender_email: SubscriberEmail,
+        timeout: Duration,
+        api_key: SecretString,
+    ) -> Self {
         Self {
             http_client: Client::builder()
                 .timeout(timeout)
@@ -20,6 +27,7 @@ impl EmailClient {
                 .expect("Failed to create new EmailClient"),
             base_url,
             sender_email,
+            api_key,
         }
     }
 
@@ -28,20 +36,23 @@ impl EmailClient {
         recipient: SubscriberEmail,
         subject: &str,
         html_content: &str,
-        text_content: &str,
     ) -> Result<(), reqwest::Error> {
-        let url = format!("{}/email", self.base_url);
+        let url = format!("{}/v3/smtp/email", self.base_url);
+        let recipients = [EmailContact {
+            email: recipient.as_ref(),
+        }];
         let request_body = SendEmailRequest {
-            from: self.sender_email.as_ref(),
-            to: recipient.as_ref(),
+            sender: EmailContact {
+                email: self.sender_email.as_ref(),
+            },
+            to: &recipients,
             subject,
             html_content,
-            text_content,
         };
 
         self.http_client
             .post(&url)
-            .header("X-Postmark-Server-Token", "test key")
+            .header("api-key", self.api_key.expose_secret())
             .json(&request_body)
             .send()
             .await?
@@ -54,11 +65,15 @@ impl EmailClient {
 #[derive(Serialize)]
 #[serde(rename_all = "PascalCase")]
 struct SendEmailRequest<'a> {
-    from: &'a str,
-    to: &'a str,
+    sender: EmailContact<'a>,
+    to: &'a [EmailContact<'a>],
     subject: &'a str,
     html_content: &'a str,
-    text_content: &'a str,
+}
+
+#[derive(Serialize)]
+struct EmailContact<'a> {
+    email: &'a str,
 }
 
 #[cfg(test)]
@@ -74,6 +89,7 @@ mod tests {
             lorem::en::{Paragraph, Sentence},
         },
     };
+    use secrecy::SecretString;
     use wiremock::{
         Mock, MockServer, Request, ResponseTemplate,
         matchers::{any, header, header_exists, method, path},
@@ -88,11 +104,10 @@ mod tests {
             let parsed_body: Result<serde_json::Value, _> = serde_json::from_slice(&request.body);
 
             if let Ok(body) = parsed_body {
-                return body.get("From").is_some()
+                return body.get("Sender").is_some()
                     && body.get("To").is_some()
                     && body.get("Subject").is_some()
-                    && body.get("HtmlContent").is_some()
-                    && body.get("TextContent").is_some();
+                    && body.get("HtmlContent").is_some();
             }
             false
         }
@@ -112,7 +127,12 @@ mod tests {
     }
     /// Get a test instance of `EmailClient`.
     fn email_client(base_url: String) -> EmailClient {
-        EmailClient::new(base_url, email(), Duration::from_millis(200))
+        EmailClient::new(
+            base_url,
+            email(),
+            Duration::from_millis(200),
+            SecretString::from("123"),
+        )
     }
 
     #[tokio::test]
@@ -120,7 +140,7 @@ mod tests {
         let mock_server = MockServer::start().await;
         let email_client = email_client(mock_server.uri());
 
-        Mock::given(header_exists("X-Postmark-Server-Token"))
+        Mock::given(header_exists("api-key"))
             .and(header("Content-Type", "application/json"))
             .and(path("/email"))
             .and(method("POST"))
@@ -132,7 +152,7 @@ mod tests {
             .await;
 
         let _ = email_client
-            .send_email(email(), &subject(), &content(), &content())
+            .send_email(email(), &subject(), &content())
             .await;
     }
 
@@ -148,7 +168,7 @@ mod tests {
             .await;
 
         let outcome = email_client
-            .send_email(email(), &subject(), &content(), &content())
+            .send_email(email(), &subject(), &content())
             .await;
 
         assert_ok!(outcome);
@@ -166,7 +186,7 @@ mod tests {
             .await;
 
         let outcome = email_client
-            .send_email(email(), &subject(), &content(), &content())
+            .send_email(email(), &subject(), &content())
             .await;
 
         assert_err!(outcome);
@@ -184,7 +204,7 @@ mod tests {
             .await;
 
         let outcome = email_client
-            .send_email(email(), &subject(), &content(), &content())
+            .send_email(email(), &subject(), &content())
             .await;
 
         assert_err!(outcome);
