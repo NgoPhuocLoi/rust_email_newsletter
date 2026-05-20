@@ -3,7 +3,7 @@ use std::io;
 use crate::{
     configuration::get_configuration,
     email_client::EmailClient,
-    routes::{health_api, subscribe},
+    routes::{confirm_subscriptions, health_api, subscribe},
 };
 use actix_web::{App, HttpServer, web};
 use sqlx::PgPool;
@@ -18,6 +18,7 @@ pub async fn run(db_connection: PgPool, email_client: EmailClient) -> io::Result
             .wrap(TracingLogger::default())
             .service(health_api)
             .service(subscribe)
+            .service(confirm_subscriptions)
             .app_data(connection.clone())
             .app_data(email_client.clone())
     })
