@@ -2,5 +2,5 @@
 
 CREATE TABLE subscription_tokens (
     subscription_token TEXT NOT NULL PRIMARY KEY,
-    subscription_id INTEGER NOT NULL REFERENCES subscription(id) ON DELETE CASCADE
+    subscription_id TEXT NOT NULL REFERENCES subscription(id) ON DELETE CASCADE
 )
